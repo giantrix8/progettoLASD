@@ -27,7 +27,7 @@ static int controllo_registrazione(char *nick, utenti *utente){
 		}
 	}
 }
-static utente* InserisciUtente (char *nick, char *password, short admin,float saldo, int *errore){
+static utenti* InserisciUtente (char *nick, char *password, short admin,float saldo, int *errore){
 	utenti *tmp;
 	tmp=(utenti*)malloc(sizeof(utenti));
 	if (tmp==NULL)
@@ -46,7 +46,7 @@ static utente* InserisciUtente (char *nick, char *password, short admin,float sa
 	*errore=0;
 	return tmp;
 }
-static abbigliamento* InserisciCapo(char *nome, int *disponbilita, float prezzo, int*errore){
+static abbigliamento* InserisciCapo(char *nome, int disponbilita[], float prezzo, int* errore) {
 	abbigliamento *tmp;
 	tmp=(abbigliamento*)malloc(sizeof(abbigliamento));
 	if (tmp==NULL)
@@ -59,7 +59,7 @@ static abbigliamento* InserisciCapo(char *nome, int *disponbilita, float prezzo,
 	strcpy(tmp->nome,nome);
 	tmp->prezzo=prezzo;
 	for (int i=0;i<Ntaglie;i++){
-		tmp->taglie[i]=disponibilita[i];
+		tmp->taglie[i]= disponbilita[i];
 	}
 	tmp->dx=tmp->sx=NULL;
 	*errore=0;
@@ -67,15 +67,15 @@ static abbigliamento* InserisciCapo(char *nome, int *disponbilita, float prezzo,
 }
 static utenti* RiempiAlberoUtente(char *nick,char *pass,short admin, utenti* radice,float saldo, int *errore){
 	if(radice == NULL) {
-		radice = InserisciUtente(nick,password,admin,saldo,errore);
+		radice = InserisciUtente(nick,pass,admin,saldo,errore);
 		return radice;
 	}
 	else {
 		if(strcmp(radice->nickname,nick)<0) {
-			radice->sx = RiempiAlbero(nick,password,admin,radice->sx,saldo,errore);
+			radice->sx = RiempiAlberoUtente(nick,pass,admin,radice->sx,saldo,errore);
 		}
 		else if(strcmp(radice->nickname,nick)>0) {
-			radice->dx =  RiempiAlbero(nick,password,admin,radice->dx,saldo,errore);
+			radice->dx =  RiempiAlberoUtente(nick,pass,admin,radice->dx,saldo,errore);
 		}
 	}
 }
@@ -99,7 +99,8 @@ static void apri_file (FILE *f1, int *errore, char *NomeFile){ //errore=-1 se no
 	if (f1==NULL)
  	{
  		*errore=-1;
- 		gestesciErrore(errore);
+         printf("il file non è stato aperto");
+ 		//gestesciErrore(errore);
 	}
 }
 utenti *CopiaDaFileUtenti (FILE *F1, char*NomeFile, utenti *radice,int *errore){
@@ -127,14 +128,16 @@ abbigliamento *CopiaDaFileCapi(FILE *F1,char *NomeFile,abbigliamento*radice, int
 		while(!feof(F1)) 
 		{
 			fscanf(F1,"%s%f",nome,&prezzo);
-			for (int i=0;i<Ntaglie,i++){
+			for (int i = 0; i < Ntaglie; i++) {
 				fscanf(F1,"%d",disponibilita[i]);
 			}
-			radice=RiempiAlberoAbbigliamento(nome,disponibilita,radice, errore);
+			radice=RiempiAlberoAbbigliamento(nome,prezzo,disponibilita,radice, errore);
 		}
+        free(nome);
 		return radice;
 	}
 	else{
+        free(nome);
 		return NULL;
 	}
 }
@@ -157,7 +160,7 @@ void gestisciErrore (int *errore){
 			printf ("inserisci 1 se vuoi provare il login, 0 se vuoi riprovare la registrazione");
 			scanf ("%d", &scelta);
 		}while ((scelta!=0)&&(scelta!=1));
-		*errore=sceta;
+		*errore=scelta;
 		break;
 	}
 	

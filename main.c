@@ -7,7 +7,7 @@ int main()
 {
  system ("color 0a");
  utenti *utente;
- FILE *Futenti,*Fcapi;
+ FILE *Futenti=NULL,*Fcapi;
  abbigliamento *capo;
  char fileUt[]="utenti.txt",fileAb[]="capi.txt";
  int *errore=0;
