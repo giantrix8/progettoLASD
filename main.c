@@ -11,10 +11,8 @@ int main()
  abbigliamento *capo;
  char fileUt[]="utenti.txt",fileAb[]="capi.txt";
  int *errore=0;
- utente=NULL;
- capo=NULL;
+ utente=(utenti*)malloc(sizeof(utenti));
  utente=CopiaDaFileUtenti(Futenti,fileUt,utente,errore);
- 
- system ("pause");
+ return 0;
 }
 

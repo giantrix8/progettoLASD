@@ -36,6 +36,8 @@ static utente* InserisciUtente (char *nick, char *password, short admin,float sa
 		*errore=-2;
 		return NULL;
 	}
+	tmp->nickname=calloc(dim1,sizeof(char));
+	tmp->password=calloc(dim1,sizeof(char));
 	strcpy(tmp->nickname,nick);
 	strcpy(tmp->password,password);
 	tmp->admin=admin;
@@ -53,6 +55,7 @@ static abbigliamento* InserisciCapo(char *nome, int *disponbilita, float prezzo,
 		*errore=-2;
 		return NULL;
 	}
+	tmp->nome=calloc(dim2,sizeof(char));
 	strcpy(tmp->nome,nome);
 	tmp->prezzo=prezzo;
 	for (int i=0;i<Ntaglie;i++){
@@ -93,7 +96,7 @@ static abbigliamento* RiempiAlberoAbbigliamento(char *nome,float prezzo,int *dis
 static void apri_file (FILE *f1, int *errore, char *NomeFile){ //errore=-1 se non apre il file
 	*errore=0;
 	f1=fopen(NomeFile, "r+");
-	if (!f1)
+	if (f1==NULL)
  	{
  		*errore=-1;
  		gestesciErrore(errore);
@@ -101,29 +104,39 @@ static void apri_file (FILE *f1, int *errore, char *NomeFile){ //errore=-1 se no
 }
 utenti *CopiaDaFileUtenti (FILE *F1, char*NomeFile, utenti *radice,int *errore){
 	apri_file (F1,errore,NomeFile);
-	char nome[dim1], pass[dim1];
+	char *nome, *pass;
+	nome=calloc(dim1,sizeof(char));
+	pass=calloc(dim1,sizeof(char));
 	short admin;
 	float saldo;
 	while(fscanf(F1,"%s%s%d%f",nome,pass,&admin,&saldo)==4) 
 	{
 		radice=RiempiAlberoUtente(nome,pass,admin,radice,saldo,errore);
+		free(nome);
+		free(pass);
 	}
 	return radice;
 }
 abbigliamento *CopiaDaFileCapi(FILE *F1,char *NomeFile,abbigliamento*radice, int *errore ){
-	char nome[dim1];
+	char *nome;
+	nome=calloc(dim1,sizeof(char));
 	int disponibilita[Ntaglie];
 	float prezzo;
 	apri_file (F1,errore,NomeFile);
-	while(!feof(F1)) 
-	{
-		fscanf(F1,"%s%f",nome,&prezzo);
-		for (int i=0;i<Ntaglie,i++){
-			fscanf(F1,"%d",disponibilita[i]);
+	if (*errore==0){
+		while(!feof(F1)) 
+		{
+			fscanf(F1,"%s%f",nome,&prezzo);
+			for (int i=0;i<Ntaglie,i++){
+				fscanf(F1,"%d",disponibilita[i]);
+			}
+			radice=RiempiAlberoAbbigliamento(nome,disponibilita,radice, errore);
 		}
-		radice=RiempiAlberoAbbigliamento(nome,disponibilita,radice, errore);
+		return radice;
 	}
-	return radice;
+	else{
+		return NULL;
+	}
 }
 void gestisciErrore (int *errore){
 	int scelta;
