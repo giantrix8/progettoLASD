@@ -6,13 +6,12 @@
 int main()
 {
  system ("color 0a");
- utenti *utente;
- FILE *Futenti=NULL,*Fcapi;
- abbigliamento *capo;
- char fileUt[]="utenti.txt",fileAb[]="capi.txt";
- int *errore=0;
- utente=(utenti*)malloc(sizeof(utenti));
- utente=CopiaDaFileUtenti(Futenti,fileUt,utente,errore);
+ utenti *utente=NULL;
+ FILE *Futenti,*Fcapi;
+ abbigliamento *capo=NULL;
+ char fileUt[]="utentae.txt",fileAb[]="capi.txt";
+ int errore=0;
+ utente=CopiaDaFileUtenti(&Futenti,fileUt,utente,&errore);
  return 0;
 }
 
