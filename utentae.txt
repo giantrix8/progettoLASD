@@ -1,2 +1,0 @@
-nick	password	1	15
-alex	binderelli	0	90.5
