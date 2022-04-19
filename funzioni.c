@@ -165,7 +165,7 @@ static abbigliamento* RiempiAlberoAbbigliamento(int id,char *nome,char *marca,fl
 	}
     return radice;
 }//FUNZIONA
-static void *CercaCapo(abbigliamento *radice,int id, int *errore)
+static abbigliamento *CercaCapo(abbigliamento *radice,int id, int *errore)
 {
     if(radice== NULL) {
         *errore=1;
@@ -178,7 +178,7 @@ static void *CercaCapo(abbigliamento *radice,int id, int *errore)
             radice=CercaCapo(radice->sx,id,errore);
         }
         else {
-            radice=(radice->dx,id,errore);
+            radice=CercaCapo(radice->dx,id,errore);
         }
     }
     return radice;
@@ -332,26 +332,15 @@ utenti *LoginRegistrazione(FILE **F1,utenti **radice,int *errore){
     }
     return tmp;
 }//FUNZIONA
-void Stampa_Utenti(utenti *radice, int scelta){ //FUNZIONA
+void Stampa_Utenti(utenti *radice){ //FUNZIONA
     if(radice!=NULL) {
-        if (scelta==0) {
-            Stampa_Utenti(radice->sx, scelta);
+            Stampa_Utenti(radice->sx);
             printf("%s\t", radice->nickname);
             if (radice->admin == 1) {
                 printf("Admin\t");
             } else { printf("Utente\t"); }
             printf("%6.2f%c\n", radice->saldo,dollaro);
-            Stampa_Utenti(radice->dx, scelta);
-        }
-        else{
-            Stampa_Utenti(radice->dx, scelta);
-            printf("%s\t", radice->nickname);
-            if (radice->admin == 1) {
-                printf("Admin\t");
-            } else { printf("Utente\t"); }
-            printf("%6.2f%c\n", radice->saldo,dollaro);
-            Stampa_Utenti(radice->sx, scelta);
-        }
+            Stampa_Utenti(radice->dx);
     }
 }//funziona
 //ABBIGLIAMENTO---------------------------------------------------------------------------------------------
@@ -375,7 +364,66 @@ abbigliamento *CopiaDaFileCapi(FILE **F1,char *NomeFile,abbigliamento*radice, in
         return radice;
     }//funziona
 }//FUNZIONA
-void MenuAdmin (utenti *utente,abbigliamento **capi,FILE **Fcapi, int *errore){
+void Stampa_Capi(abbigliamento *capo){
+    abbigliamento *radice;
+    radice=capo;
+    if(radice!=NULL) {
+            Stampa_Capi(radice->sx);
+            printf("ID=%d\t",radice->id);
+            printf("NOME=%s\t", radice->nome);
+            printf("MARCA=%s\t",radice->marca);
+            printf("PREZZO:%6.2f%c\n", radice->prezzo,dollaro);
+            Stampa_Capi(radice->dx);
+    }
+}//funziona
+static void Acquista(utenti **utente,abbigliamento **capi, int *errore){
+    int id,taglia_indice,scelta;
+    char taglia[ltg];
+    abbigliamento *articolo;
+    utenti *cliente;
+    cliente=*utente;
+    articolo=*capi;
+    printf("\nQuale articolo vuoi acquistare? Inserisci l'ID --->");
+    scanf("%d",&id);
+    articolo=CercaCapo(articolo,id,errore);
+    if (cliente->saldo>=articolo->prezzo){
+        do {
+            printf("\nInserisci la taglia tra XS|S|M|L|XL");
+            scanf("%s", taglia);
+            if ((strcmp(taglia, "XS") == 0) || (strcmp(taglia, "xs") == 0)) {
+                taglia_indice = 0;
+            } else if ((strcmp(taglia, "S") == 0) || (strcmp(taglia, "s") == 0)) {
+                taglia_indice = 1;
+            } else if ((strcmp(taglia, "M") == 0) || (strcmp(taglia, "m") == 0)) {
+                taglia_indice = 2;
+            } else if ((strcmp(taglia, "L") == 0) || (strcmp(taglia, "l") == 0)) {
+                taglia_indice = 3;
+            } else if ((strcmp(taglia, "XL") == 0) || (strcmp(taglia, "xl") == 0)) {
+                taglia_indice = 4;
+            } else {
+                printf("\nLa taglia inserita non %c giusta", e_accentata);
+                taglia_indice = -1;
+            }
+        } while (taglia_indice==-1);
+
+        printf("\nHai selezionato l'articolo:\t");
+        printf("\nNome:%s  Modello:%s  Prezzo:%6.2f  %s",articolo->nome,articolo->marca,articolo->prezzo,taglia);
+        printf ("Inserire 1 se desideri proseguire l'aqcuisto, 0 altrimenti");
+        scanf("%d",&scelta);
+        if (scelta==1){
+            if (articolo->taglie[taglia_indice]>0){
+                cliente->saldo=cliente->saldo-articolo->prezzo;
+                articolo->taglie[taglia_indice]--;
+            }
+            else{
+                InserisciAttesa(Sattesa,articolo,cliente);
+            }
+        }
+        return;
+    }
+}
+//Funzioni principali del main----------------------------------------------------------
+void MenuAdmin (utenti *utente,abbigliamento **capi, int *errore){
     int scelta,opzione,id,taglie[Ntaglie];
     char nome[dim2],marca[dim2];
     float prezzo;
@@ -398,7 +446,7 @@ void MenuAdmin (utenti *utente,abbigliamento **capi,FILE **Fcapi, int *errore){
         printf("\nTAGLIE: XS | S | M | L | XL\n");
         int i;
         for (i=0;i<Ntaglie;i++){
-             scanf("%d",&taglie[i]);
+            scanf("%d",&taglie[i]);
         }
         do {
             opzione=0;
@@ -414,30 +462,70 @@ void MenuAdmin (utenti *utente,abbigliamento **capi,FILE **Fcapi, int *errore){
         }while(opzione!=0);
     }
     else if (scelta == 2){
-            ModificaDisponibilita(capi,errore);
-        }
+        ModificaDisponibilita(capi,errore);
+    }
     else if (scelta==0){
         return;
     }
-        MenuAdmin(utente,capi,Fcapi,errore);
+    MenuAdmin(utente,capi,errore);
 }//FUNZIONA
-void Stampa_Capi(abbigliamento *radice, int scelta){
-    if(radice!=NULL) {
-        if (scelta==0) {
-            Stampa_Capi(radice->sx, scelta);
-            printf("ID=%d\t",radice->id);
-            printf("NOME=%s\t", radice->nome);
-            printf("MARCA=%s\t",radice->marca);
-            printf("PREZZO:%6.2f%c\n", radice->prezzo,dollaro);
-            Stampa_Capi(radice->dx, scelta);
+void MenuUtente (utenti **utente, abbigliamento **capi, int *errore){
+    Logo();
+    char lettera,password[dim2];
+    float ricarica;
+    int scelta,controllo;
+    utenti *tmp;
+    tmp=*utente;
+    printf("\nCiao %c\nSALDO: %6.2f%c\nQuali operazioni vuoi effettuare?",tmp->nickname,tmp->saldo,dollaro);
+    printf("\nDigita 0 per ricaricare il tuo saldo");
+    printf("\nDigita 1 per svuotare e prelevare il tuo saldo");
+    printf("\nDigita 2 per Acquistare--->");
+    scanf("%d",&scelta);
+    switch (scelta) {
+        case 0: {
+            do {
+                printf("\nDi quanto vuoi ricaricare il tuo saldo?--->");
+                scanf("%f", &ricarica);
+                if (ricarica < 0) {
+                    printf("\nPuoi caricare solo quantit%c positive", a_accentata);
+                    printf("\nDigita -1 per ricaricare oppure 0 per tornare al men%c", u_accentata);
+                    scanf("%f", &ricarica);
+                }
+            } while (ricarica < 0);
+            tmp->saldo = tmp->saldo + ricarica;
+            MenuUtente(utente, capi, errore);
+            break;
         }
-        else{
-            Stampa_Capi(radice->dx, scelta);
-            printf("ID=%d\t",radice->id);
-            printf("NOME=%s\t", radice->nome);
-            printf("MARCA=%s\t",radice->marca);
-            printf("PREZZO:%6.2f%c\n", radice->prezzo,dollaro);
-            Stampa_Capi(radice->sx, scelta);
+        case 1: {
+            printf ("\nSei sicuro di voler prelevare tutto il tuo conto? digita si o no");
+            scanf ("%c",lettera);
+            if (lettera=='s'|| lettera=='S'){
+                do {
+                    printf("\nInserisci la tua password--->");
+                    scanf("%s", dim2);
+                    if (controllo=strcmp(tmp->password,password)!=0){
+                        printf("\nLa password non corrisponde\nDigita -1 se vuoi tornare al men%c o 1 se vuoi riprovare ",u_accentata);
+                        scanf("%d",&scelta);
+                        if (scelta==-1){
+                            MenuUtente (utente,capi,errore);
+                            return;
+                        }
+                    }
+                }while(controllo!=0);
+                printf("\nHai ritirato %6.2f%c",tmp->saldo,dollaro);
+                tmp->saldo=0;
+            }
+            else{
+                MenuUtente (utente,capi,errore);
+            }
+            break;
+        }
+        case 2: {
+            Logo();
+            printf("\nCiao %c\nSALDO: %6.2f%c\n",tmp->nickname,tmp->saldo,dollaro);
+            printf ("\nGli articoli in vendita sono:");
+            Stampa_Capi(tmp);
+            Acquista(utente,capi,errore);
         }
     }
-}//funziona
+}
