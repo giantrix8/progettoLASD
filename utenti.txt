@@ -1,0 +1,5 @@
+nick	password	1	15
+alex	binderelli	0	90.5
+zamoto lalala	0	10.0
+azba	bho		1	0
+Giantrix	30ellode	1	 88.88
