@@ -21,40 +21,63 @@ static FILE *apri_file(FILE **f1, int *errore, char *NomeFile,char *modalita){ /
         //gestisciErrore(errore);
     }
 }//FUNZIONA
-static void ScriviSuFileUtente(FILE **F1, utenti *radice){
-    if (F1!=NULL) {
-        if (radice != NULL) {
-            //printf("%s\t%s\t%d\t%6.2f\n",radice->nickname,radice->password,radice->admin,radice->saldo);
-            fprintf(*F1, "%s\t%s\t%d\t%6.2f\n", radice->nickname, radice->password, radice->admin, radice->saldo);
-        } else {
-            printf("\nNon %c stato passato nessun elemento", e_accentata);
-        }
-    }
-}//FUNZIONA
-static void ScriviSuFileCapi (FILE **F1, abbigliamento *radice, char *nomeFile){
+static void Scrivi (FILE **F1,char *NomeFile){
+    fclose(*F1);
+    char modalita[]="w";
     int errore=0;
-    static eseguito=0;
-    if (eseguito==0) {
-        fclose(*F1);
-        free(*F1);
-        *F1 = apri_file(*F1, &errore, nomeFile, "w");
-        eseguito=1;
+    *F1=apri_file(F1,&errore,NomeFile,modalita);
+    if(errore==-1){
+        exit(1);
     }
-    if (errore==0) {
-        if (radice != NULL) {
-            //printf("%s\t%s\t%d\t%6.2f\n",radice->nickname,radice->password,radice->admin,radice->saldo);
-            fprintf(*F1, "%d\t%s\t%s\t%d\t%6.2f\n", radice->id, radice->nome, radice->marca, radice->prezzo);
-            for (int i = 0; i < Ntaglie; i++) {
-                fprintf(*F1, "%d ", radice->taglie[i]);
-            }
-            fprintf(F1, "\n");
-            ScriviSuFileCapi (F1,radice->sx,nomeFile);
-            ScriviSuFileCapi (F1,radice->dx,nomeFile);
+}
+static void ScriviSuFileUt(FILE **F1,utenti *radice) {
+    if (radice==NULL){return;}
+    //printf("%s\t%s\t%d\t%6.2f\n", radice->nickname, radice->password, radice->admin, radice->saldo);
+    fprintf(*F1, "%s\t%s\t%d\t%6.2f\n", radice->nickname, radice->password, radice->admin, radice->saldo);
+    ScriviSuFileUt(F1,radice->sx);
+    ScriviSuFileUt(F1,radice->dx);
+} //funziona
+static void ScriviSuFileLista(FILE **F1,UtAttesa *lista){
+    if (lista==NULL){
+        return;
+    }
+    else{
+        fprintf(*F1,"%s\t",lista->nickname);
+        ScriviSuFileLista(F1,lista->next);
+    }
+}
+static void ScriviSuFileAtt(FILE **F1,attesa *radice) {
+    if (radice==NULL){return;}
+    //printf("%s\t%s\t%d\t%6.2f\n", radice->nickname, radice->password, radice->admin, radice->saldo);
+    for (int i = 0; i < Ntaglie; ++i) {
+        if(radice->listaAttesa[i].next!=NULL){
+            fprintf(*F1, "%d\t%d\t",radice->id,i);
+            ScriviSuFileLista(F1,radice->listaAttesa[i].next);
+            fprintf(*F1,"0\n");
         }
+        ScriviSuFileAtt(F1,radice->sx);
+        ScriviSuFileAtt(F1,radice->dx);
     }
-    else {
+} //funziona
+void ScriviSuFileAttesa(FILE **F1, attesa *radice,char *NomeFile){
+    Scrivi(F1,NomeFile);
+    if (radice == NULL) {
         printf("\nNon %c stato passato nessun elemento", e_accentata);
     }
+    else {
+        ScriviSuFileAtt(F1,radice);
+    }
+    fclose(*F1);
+}
+void ScriviSuFileUtente(FILE **F1, utenti *radice,char *NomeFile){
+    Scrivi(F1,NomeFile);
+        if (radice == NULL) {
+            printf("\nNon %c stato passato nessun elemento", e_accentata);
+        }
+        else {
+            ScriviSuFileUt(F1,radice);
+        }
+    fclose(*F1);
 }//FUNZIONA
 static int ControlloUtente(char *nick, utenti *utente, char *password,short login){
     int controllo=0,Pcontrollo=2;
@@ -124,6 +147,45 @@ static utenti* RiempiAlberoUtente(char *nick,char *pass,short admin, utenti* rad
         return radice;
     }
 } //FUNZIONA
+static void RicaricaSaldo(utenti **utente){
+    float ricarica;
+    utenti *radice;
+    radice=*utente;
+    do {
+        printf("\nDi quanto vuoi ricaricare il tuo saldo?--->");
+        scanf("%f", &ricarica);
+        if (ricarica < 0) {
+            printf("\nPuoi caricare solo quantit%c positive", a_accentata);
+            printf("\nDigita -1 per ricaricare oppure 0 per tornare al men%c", u_accentata);
+            scanf("%f", &ricarica);
+        }
+    } while (ricarica < 0);
+    radice->saldo = radice->saldo + ricarica;
+}//funziona
+static void ScriviSuFileAb(FILE **F1,abbigliamento *radice) {
+    if (radice==NULL){return;}
+    //printf("%s\t%s\t%d\t%6.2f\n", radice->nome, radice->marca, radice->id, radice->prezzo);
+    fprintf(*F1, "\n%s\t%s\t%d\t%6.2f\t", radice->nome, radice->marca, radice->id, radice->prezzo);
+    for (int i=0;i<Ntaglie;i++){
+        fprintf(*F1,"%d ",radice->taglie[i]);
+    }
+    ScriviSuFileAb(F1,radice->sx);
+    ScriviSuFileAb(F1,radice->dx);
+} //funziona
+void ScriviSuFileCapi (FILE **F1, abbigliamento *radice, char *NomeFile){
+    fclose(*F1);
+    char modalita[]="w";
+    int errore=0;
+    *F1=apri_file(F1,&errore,NomeFile,modalita);
+    if (radice == NULL) {
+        printf("\nNon %c stato passato nessun elemento", e_accentata);
+    }
+    else {
+        ScriviSuFileAb(F1,radice);
+    }
+    fclose(*F1);
+}//FUNZIONA
+//-----------------------------------------------------------------------------------------------------
 static abbigliamento* InserisciCapo(int id, char *nome,char *marca, int disponbilita[], float prezzo, int *errore) {
 	abbigliamento *tmp;
 	tmp=(abbigliamento*)malloc(sizeof(abbigliamento));
@@ -139,7 +201,6 @@ static abbigliamento* InserisciCapo(int id, char *nome,char *marca, int disponbi
     strcpy(tmp->marca,marca);
     tmp->id=id;
 	tmp->prezzo=prezzo;
-    printf ("\t%6.2f",prezzo);
     int i;
 	for (i=0;i<Ntaglie;i++){
 		tmp->taglie[i]= disponbilita[i];
@@ -165,8 +226,7 @@ static abbigliamento* RiempiAlberoAbbigliamento(int id,char *nome,char *marca,fl
 	}
     return radice;
 }//FUNZIONA
-static abbigliamento *CercaCapo(abbigliamento *radice,int id, int *errore)
-{
+static abbigliamento *CercaCapo(abbigliamento *radice,int id, int *errore){
     if(radice== NULL) {
         *errore=1;
     }
@@ -219,7 +279,7 @@ static void ModificaDisponibilita (abbigliamento **capi,int *errore) {
             } else {
                 printf("\nLa taglia inserita non %c giusta", e_accentata);
             }
-            printf("\nInserisci 0 se vuoi modificare un'altra taglia 1 altrimenti--->");
+            printf("\nInserisci 0 se vuoi modificarne un'altra taglia 1 altrimenti--->");
             scanf("%d", &scelta);
         } while (scelta == 0);
     } else {
@@ -231,6 +291,128 @@ static void ModificaDisponibilita (abbigliamento **capi,int *errore) {
         ModificaDisponibilita(capi, errore);
     }
 }//FUNZIONA
+//ATTESA----------------------------------------------------------------------------------------------
+static UtAttesa *InserisciUtenteAttesa (UtAttesa *testa,char nick[],int *errore,int taglia){
+        //printf ("hgjk");
+        if(strcmp(nick,"0")==0){
+            *errore=0;
+        }
+        else if (testa == NULL) {
+            testa = (UtAttesa *) malloc(sizeof(UtAttesa));
+            if (testa == NULL) {
+                printf("non %c stato possibile allocare la memoria\n", e_accentata);
+                *errore = -2;
+                return NULL;
+            }
+            testa->taglia=taglia;
+            testa->nickname= calloc(dim1,sizeof(char));
+            strcpy(testa->nickname,nick);
+            //printf(" %s--%s \n",nick,testa->nickname);
+            testa->next = NULL;
+        }
+        else {
+            testa->next = InserisciUtenteAttesa(testa->next, nick, errore,taglia);
+        }
+    return testa;
+}//FUNZIONA
+static attesa *CreaNodoAttesa (int id, int taglia, int *errore,char *nickname, FILE **F1){
+    attesa *tmp;
+    tmp=(attesa *)malloc(sizeof(attesa));
+    *errore=1;
+    if (tmp==NULL)
+    {
+        printf ("non %c stato possibile allocare la memoria\n", e_accentata);
+        *errore=-2;
+        return NULL;
+    }
+    tmp->id=id;
+    tmp->listaAttesa[taglia].next=NULL;
+        char nick[dim1];
+        while (*errore != 0) {
+            fscanf(*F1, "%s", nick);
+            tmp->listaAttesa[taglia].next = InserisciUtenteAttesa(tmp->listaAttesa[taglia].next, nick, errore,taglia);
+            if (*errore == -2) {
+                return NULL;
+            }
+    }
+    tmp->dx=tmp->sx=NULL;
+    return tmp;
+}//FUNZIONA
+static attesa *InserimentoAttesa(attesa *radice,int id, int taglia,int *errore,FILE **F1){
+    if(radice == NULL) {
+        radice = CreaNodoAttesa(id,taglia,errore,NULL,F1);
+        return radice;
+    }
+    else {
+        if(radice->id<id) {
+            //printf ("\nsx\n");
+            radice->sx = InserimentoAttesa(radice->sx,id,taglia,errore,F1);
+        }
+        else if (radice->id>id){
+            //printf ("\ndx\n");
+            radice->dx = InserimentoAttesa(radice->dx,id,taglia,errore,F1);
+        }
+    }
+    return radice;
+} //FUNZIONA
+static attesa *cercaNodoA (attesa *radice,int id){
+    if(radice == NULL) {
+        return NULL;
+    }
+    else if (radice->id==id) {
+        //printf("radice %d ",radice->id);
+        return radice;
+    }
+    else{
+            if (radice->id < id) {
+                //printf ("\nsx\n");
+                radice = cercaNodoA(radice->sx, id);
+            }
+            else{
+                //printf ("\ndx\n");
+                radice = cercaNodoA(radice->dx, id);
+            }
+    }
+    return radice;
+}//FUNZIONA
+static int Conta(UtAttesa *testa){
+    if (testa==0){
+        return 0;
+    }
+    else {
+        return 1+Conta(testa->next);
+    }
+}//funziona
+static attesa *ContaAttesa(attesa *radice,int id, int taglia, int *conteggio){
+    *conteggio=0;
+    radice=cercaNodoA(radice,id);
+    //printf("radice %d ",radice->id);
+    if (radice!=NULL) {
+        *conteggio=Conta(radice->listaAttesa[taglia].next);
+    }
+    return radice;
+}//FUNZIONA
+attesa *CopiaDaFileAttesa(FILE **F1,char *NomeFile,attesa *radice,int *errore,char *modalita){
+    *F1 = apri_file(F1, errore, NomeFile, modalita);
+    if (*errore == 0) {
+        int id, taglia;
+        while (!feof(*F1)) {
+            fscanf(*F1, "%d%d", &id, &taglia);
+            radice = InserimentoAttesa(radice, id, taglia, errore, F1);
+        }
+    }
+    return radice;
+} //FUNZIONA//
+attesa *DeallocaAttesa (attesa *radice){
+    if(radice!=NULL) {
+        if((radice->sx==NULL) && (radice->dx==NULL)){
+            free(radice);
+        }
+        DeallocaUtenti(radice->sx);
+        DeallocaUtenti(radice->dx);
+    }
+    return radice;
+}
 //UTENTI----------------------------------------------------------------------------------------------
 utenti *CopiaDaFileUtenti (FILE **F1, char *NomeFile, utenti *radice,int *errore, char *modalita){ //FUNZIONA
 	*F1=apri_file (F1,errore,NomeFile, modalita);
@@ -327,9 +509,6 @@ utenti *LoginRegistrazione(FILE **F1,utenti **radice,int *errore){
         }while(controllo!=0);
     }
     utenti* tmp=TrovaUtente(nick,*radice);
-    if (scelta==1){
-        ScriviSuFileUtente(F1,tmp);
-    }
     return tmp;
 }//FUNZIONA
 void Stampa_Utenti(utenti *radice){ //FUNZIONA
@@ -343,6 +522,16 @@ void Stampa_Utenti(utenti *radice){ //FUNZIONA
             Stampa_Utenti(radice->dx);
     }
 }//funziona
+utenti *DeallocaUtenti (utenti *radice){
+    if(radice!=NULL) {
+        if((radice->sx==NULL) && (radice->dx==NULL)){
+            free(radice);
+        }
+        DeallocaUtenti(radice->sx);
+        DeallocaUtenti(radice->dx);
+    }
+    return radice;
+}
 //ABBIGLIAMENTO---------------------------------------------------------------------------------------------
 abbigliamento *CopiaDaFileCapi(FILE **F1,char *NomeFile,abbigliamento*radice, int *errore, char*modalita ) {
     *F1 = apri_file(F1, errore, NomeFile, modalita);
@@ -376,9 +565,46 @@ void Stampa_Capi(abbigliamento *capo){
             Stampa_Capi(radice->dx);
     }
 }//funziona
-static void Acquista(utenti **utente,abbigliamento **capi, int *errore){
+static UtAttesa *InserisciAttesa(UtAttesa *lista, char *nickname){
+    if(lista==NULL){
+        lista=(UtAttesa*)malloc(sizeof (UtAttesa));
+        lista->next=NULL;
+        lista->nickname=nickname;
+    }
+    else{
+        lista->next=InserisciAttesa(lista->next ,nickname);
+    }
+    return lista;
+}
+static void Transazione(utenti **utente,abbigliamento**vestito,int taglia_indice, attesa **Attesa, int id){
+    attesa *tmp;
+    tmp=*Attesa;
+    abbigliamento *articolo;
+    articolo=*vestito;
+    utenti *cliente;
+    cliente=*utente;
+    int conto;
+    tmp=ContaAttesa(tmp, id, taglia_indice,&conto);
+    if (articolo->taglie[taglia_indice] < 0) {
+        printf("\nOps sembra che la taglia dell'articolo selezionato sia esaurita.");
+        printf("\nVerrai inserito nella lista d'attesa");
+        tmp->listaAttesa[taglia_indice].next = InserisciAttesa(tmp->listaAttesa[taglia_indice].next,cliente->nickname);
+    }
+    else if (conto >= articolo->taglie[taglia_indice]) {
+        printf("\nMi dispiace ma ci sono altre persone in coda, verrai inserito anche tu");
+        tmp->listaAttesa[taglia_indice].next  = InserisciAttesa(tmp->listaAttesa[taglia_indice].next ,cliente->nickname);
+    }
+    else {
+        cliente->saldo = cliente->saldo - articolo->prezzo;
+        articolo->taglie[taglia_indice] = articolo->taglie[taglia_indice] - 1;
+        printf("\nLa transazione %c stata eseguita correttamente%c", e_accentata, faccina);
+    }
+}
+static void Acquista(utenti **utente,abbigliamento **capi, int *errore, attesa **ListaAttesa){
     int id,taglia_indice,scelta;
     char taglia[ltg];
+    attesa **tmp;
+    tmp=*ListaAttesa;
     abbigliamento *articolo;
     utenti *cliente;
     cliente=*utente;
@@ -405,33 +631,47 @@ static void Acquista(utenti **utente,abbigliamento **capi, int *errore){
                 taglia_indice = -1;
             }
         } while (taglia_indice==-1);
-
         printf("\nHai selezionato l'articolo:\t");
-        printf("\nNome:%s  Modello:%s  Prezzo:%6.2f  %s",articolo->nome,articolo->marca,articolo->prezzo,taglia);
-        printf ("Inserire 1 se desideri proseguire l'aqcuisto, 0 altrimenti");
+        printf("\nNome:%s  Modello:%s  Prezzo:%6.2f  Taglia: %s",articolo->nome,articolo->marca,articolo->prezzo,taglia);
+        printf ("\nInserire 1 se desideri proseguire l'aqcuisto, 0 altrimenti");
         scanf("%d",&scelta);
-        if (scelta==1){
-            if (articolo->taglie[taglia_indice]>0){
-                cliente->saldo=cliente->saldo-articolo->prezzo;
-                articolo->taglie[taglia_indice]--;
+        if (scelta==1) {
+                Transazione(&cliente,&articolo,taglia_indice,ListaAttesa,id);
             }
-            else{
-                InserisciAttesa(Sattesa,articolo,cliente);
-            }
-        }
-        return;
     }
+    else{
+        printf ("\nDevi effettuare una ricarica di almeno%6.2f%c",articolo->prezzo-cliente->saldo,dollaro);
+        RicaricaSaldo(&cliente);
+        if (cliente->saldo>=articolo->prezzo)
+        {
+            Transazione(&cliente,&articolo,taglia_indice,ListaAttesa,id);
+        }
+        else{
+            printf("\nLa ricarica non %c stata sufficiente ti mancano%6.2f%c",e_accentata,articolo->prezzo-cliente->saldo,dollaro);
+            sleep(2);
+        }
+    }
+}
+abbigliamento *DeallocaCapi (abbigliamento *radice){
+    if(radice!=NULL) {
+        if((radice->sx==NULL) && (radice->dx==NULL)){
+            free(radice);
+        }
+        DeallocaCapi(radice->sx);
+        DeallocaCapi(radice->dx);
+    }
+    return radice;
 }
 //Funzioni principali del main----------------------------------------------------------
 void MenuAdmin (utenti *utente,abbigliamento **capi, int *errore){
     int scelta,opzione,id,taglie[Ntaglie];
     char nome[dim2],marca[dim2];
     float prezzo;
-    Logo();
+    //Logo();
     printf("Benevnuto %s, sei nel sistema degli admin\nCosa vuoi fare?\n", utente->nickname);
-    printf("\nInserisci 1 per aggiungere un nuovo prodotto:\n");
+    printf("\nInserisci 0 per concludere le operazioni\n");
+    printf("Inserisci 1 per aggiungere un nuovo prodotto:\n");
     printf("Inserisci 2 per aggiornare la disponibilit%c dei prodotti\n",a_accentata);
-    printf("Inserisci 0 per concludere le operazioni\n--->");
     scanf("%d", &scelta);
     if (scelta == 1) {
         printf("Inserisci:\n");
@@ -443,7 +683,7 @@ void MenuAdmin (utenti *utente,abbigliamento **capi, int *errore){
         scanf("%d",&id);
         printf("\nPREZZO---->");
         scanf("%f",&prezzo);
-        printf("\nTAGLIE: XS | S | M | L | XL\n");
+        printf("\nInserisci la quantit%c delle taglie nel seguente ordine:XS | S | M | L | XL\n",a_accentata);
         int i;
         for (i=0;i<Ntaglie;i++){
             scanf("%d",&taglie[i]);
@@ -469,63 +709,57 @@ void MenuAdmin (utenti *utente,abbigliamento **capi, int *errore){
     }
     MenuAdmin(utente,capi,errore);
 }//FUNZIONA
-void MenuUtente (utenti **utente, abbigliamento **capi, int *errore){
-    Logo();
-    char lettera,password[dim2];
-    float ricarica;
-    int scelta,controllo;
+void MenuUtente (utenti **utente, abbigliamento **capi, int *errore, attesa **ListaAttesa) {
+    //Logo();
+    char password[dim2];
+    int lettera, scelta, controllo;
     utenti *tmp;
-    tmp=*utente;
-    printf("\nCiao %c\nSALDO: %6.2f%c\nQuali operazioni vuoi effettuare?",tmp->nickname,tmp->saldo,dollaro);
+    tmp = *utente;
+    printf("\nCiao %s\nSALDO: %6.2f%c\nQuali operazioni vuoi effettuare?", tmp->nickname, tmp->saldo, dollaro);
     printf("\nDigita 0 per ricaricare il tuo saldo");
     printf("\nDigita 1 per svuotare e prelevare il tuo saldo");
-    printf("\nDigita 2 per Acquistare--->");
-    scanf("%d",&scelta);
+    printf("\nDigita 2 per Acquistare");
+    printf("\nDigita 3 per fare il Logout--->");
+    scanf("%d", &scelta);
     switch (scelta) {
         case 0: {
-            do {
-                printf("\nDi quanto vuoi ricaricare il tuo saldo?--->");
-                scanf("%f", &ricarica);
-                if (ricarica < 0) {
-                    printf("\nPuoi caricare solo quantit%c positive", a_accentata);
-                    printf("\nDigita -1 per ricaricare oppure 0 per tornare al men%c", u_accentata);
-                    scanf("%f", &ricarica);
-                }
-            } while (ricarica < 0);
-            tmp->saldo = tmp->saldo + ricarica;
-            MenuUtente(utente, capi, errore);
+            RicaricaSaldo(&tmp);
             break;
         }
         case 1: {
-            printf ("\nSei sicuro di voler prelevare tutto il tuo conto? digita si o no");
-            scanf ("%c",lettera);
-            if (lettera=='s'|| lettera=='S'){
+            printf("\nSei sicuro di voler prelevare tutto il tuo conto? digita 0 per confermare, 1 altrimenti");
+            scanf("%d", &lettera);
+            if (lettera == 0) {
                 do {
                     printf("\nInserisci la tua password--->");
-                    scanf("%s", dim2);
-                    if (controllo=strcmp(tmp->password,password)!=0){
-                        printf("\nLa password non corrisponde\nDigita -1 se vuoi tornare al men%c o 1 se vuoi riprovare ",u_accentata);
-                        scanf("%d",&scelta);
-                        if (scelta==-1){
-                            MenuUtente (utente,capi,errore);
+                    scanf("%s", password);
+                    if (controllo = strcmp(tmp->password, password) != 0) {
+                        printf("\nLa password non corrisponde\nDigita -1 se vuoi tornare al men%c o 1 se vuoi riprovare ",
+                               u_accentata);
+                        scanf("%d", &scelta);
+                        if (scelta == -1) {
+                            MenuUtente(utente, capi, errore, ListaAttesa);
                             return;
                         }
                     }
-                }while(controllo!=0);
-                printf("\nHai ritirato %6.2f%c",tmp->saldo,dollaro);
-                tmp->saldo=0;
-            }
-            else{
-                MenuUtente (utente,capi,errore);
+                } while (controllo != 0);
+                printf("\nHai ritirato %6.2f%c", tmp->saldo, dollaro);
+                tmp->saldo = 0;
             }
             break;
         }
         case 2: {
-            Logo();
-            printf("\nCiao %c\nSALDO: %6.2f%c\n",tmp->nickname,tmp->saldo,dollaro);
-            printf ("\nGli articoli in vendita sono:");
-            Stampa_Capi(tmp);
-            Acquista(utente,capi,errore);
+            //Logo();
+            //printf("\nCiao %c\nSALDO: %6.2f%c\n",tmp->nickname,tmp->saldo,dollaro);
+            printf("\nGli articoli in vendita sono:\n");
+            Stampa_Capi(*capi);
+            Acquista(utente, capi, errore, ListaAttesa);
+            break;
+        }
+        case 3: {
+            *errore=5;
+            return;
         }
     }
-}
+    MenuUtente(utente, capi, errore, ListaAttesa);
+}//FUNZIONA
