@@ -1,0 +1,3 @@
+4	2	PEPPOX	RATEX	0
+1	0	pippo		tutto	0
+
